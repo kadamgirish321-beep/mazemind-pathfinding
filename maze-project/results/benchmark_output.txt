@@ -1,0 +1,18 @@
+  10 x 10   backtracker     0.34 ms   prim     0.37 ms   kruskal     0.19 ms   explored dfs/bfs/a* 59/80/67   dfs path 1.11x shortest
+  20 x 20   backtracker     1.34 ms   prim     1.24 ms   kruskal     0.83 ms   explored dfs/bfs/a* 140/267/223   dfs path 1.52x shortest
+  40 x 40   backtracker     5.35 ms   prim     4.89 ms   kruskal     3.76 ms   explored dfs/bfs/a* 407/1431/1092   dfs path 1.77x shortest
+  60 x 60   backtracker    12.51 ms   prim    11.97 ms   kruskal     8.35 ms   explored dfs/bfs/a* 941/3331/2997   dfs path 2.05x shortest
+  80 x 80   backtracker    20.98 ms   prim    20.19 ms   kruskal    16.33 ms   explored dfs/bfs/a* 1331/5835/4944   dfs path 2.48x shortest
+ 100 x 100  backtracker    34.87 ms   prim    41.90 ms   kruskal    26.16 ms   explored dfs/bfs/a* 2526/9753/8686   dfs path 2.70x shortest
+ 140 x 140  backtracker    71.96 ms   prim    74.22 ms   kruskal    67.41 ms   explored dfs/bfs/a* 7457/19172/17204   dfs path 3.39x shortest
+ 200 x 200  backtracker   157.95 ms   prim   142.41 ms   kruskal   178.91 ms   explored dfs/bfs/a* 5275/39644/37014   dfs path 3.16x shortest
+
+Maze character (40 x 40, 20 mazes each)
+  Recursive backtracker    dead ends  10.2%  junctions   9.9%  solution  28.9% of cells  difficulty  558  perfect 20/20
+  Randomised Prim's        dead ends  32.3%  junctions  27.5%  solution   5.3% of cells  difficulty  239  perfect 20/20
+  Randomised Kruskal's     dead ends  30.3%  junctions  26.2%  solution   8.9% of cells  difficulty  366  perfect 20/20
+
+Recursive version (Python recursion limit 1000): worked up to 40 x 40, RecursionError at 50 x 50.
+Explicit-stack version built 300 x 300 fine (max stack depth 26283).
+
+Charts written to /home/claude/maze-project/results

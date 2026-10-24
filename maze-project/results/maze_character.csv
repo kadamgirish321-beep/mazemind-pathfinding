@@ -1,0 +1,4 @@
+algorithm,dead_end_pct,junction_pct,solution_pct_of_cells,mean_difficulty,perfect_mazes
+Recursive backtracker,10.2,9.9,28.9,558,20/20
+Randomised Prim's,32.3,27.5,5.3,239,20/20
+Randomised Kruskal's,30.3,26.2,8.9,366,20/20

@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MazeMind Assessment Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a test-booklet workbench. Maze sheet on the left, examiner's record on the right. */
+:root {
+  --paper: #eef1ee;
+  --surface: #fbfcfa;
+  --ink: #1c2631;
+  --muted: #5a6570;
+  --rule: #d3d9d4;
+  --rock: #e1e6e2;
+  --accent: #2b59c3;
+  --accent-ink: #ffffff;
+  --path: #0d8065;
+  --error: #c2410c;
+  --visit: #dbe5f8;
+  --stack: #f5dfa8;
+  --dead: #f3d6c9;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --font-display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11161b; --surface: #182029; --ink: #dfe5ea; --muted: #97a3ae; --rule: #2c3640;
+    --rock: #222b35; --accent: #7fa2f2; --accent-ink: #0d1420; --path: #3cc59e; --error: #f2814f;
+    --visit: #1d2b45; --stack: #4d3d15; --dead: #4a2a1d;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11161b; --surface: #182029; --ink: #dfe5ea; --muted: #97a3ae; --rule: #2c3640;
+  --rock: #222b35; --accent: #7fa2f2; --accent-ink: #0d1420; --path: #3cc59e; --error: #f2814f;
+  --visit: #1d2b45; --stack: #4d3d15; --dead: #4a2a1d;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+button, select, input { font: inherit; color: inherit; }
+
+/* Masthead */
+.mast { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; padding-block: 28px 18px; }
+.mast h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; letter-spacing: -0.01em; }
+.mast h1 span { color: var(--accent); }
+.mast p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.form-id { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: right; line-height: 1.6; }
+.form-id b { color: var(--ink); font-weight: 500; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--rule); overflow-x: auto; margin-bottom: 22px; }
+.tab { background: none; border: 0; padding: 10px 14px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:hover { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Workbench grid */
+.bench { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; position: relative; min-width: 0; }
+.sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.canvas-box { display: flex; justify-content: center; position: relative; min-width: 0; }
+canvas { display: block; max-width: 100%; touch-action: none; }
+.record { display: grid; gap: 18px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; min-width: 0; }
+.panel h3 { font-size: 17px; margin-bottom: 10px; }
+
+/* Controls */
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { border: 1.5px solid var(--ink); background: transparent; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+.btn:hover { background: var(--rock); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.field { display: grid; gap: 4px; font-size: 13px; }
+.field select, .field input[type="number"] { border: 1px solid var(--rule); background: var(--surface); border-radius: 4px; padding: 6px 8px; }
+.field input[type="range"] { accent-color: var(--accent); width: 140px; }
+
+/* Readouts */
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.readout { border-top: 2px solid var(--ink); padding-top: 6px; }
+.readout .v { font-family: var(--font-mono); font-size: 22px; font-variant-numeric: tabular-nums; }
+.readout .k { font-size: 12px; color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; }
+.pill.good { border-color: var(--path); color: var(--path); }
+.pill.warn { border-color: var(--error); color: var(--error); }
+
+/* Overlay on maze */
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--surface) 72%, transparent); border-radius: 6px; z-index: 2; }
+.overlay.compact { background: transparent; place-items: end center; padding: 12px; pointer-events: none; }
+.overlay.compact .card { pointer-events: auto; padding: 12px 16px; max-width: 420px; }
+.overlay .card { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 6px; padding: 18px 20px; max-width: 340px; text-align: center; display: grid; gap: 10px; box-shadow: 0 8px 30px rgb(0 0 0 / 0.12); }
+.overlay .card h3 { font-size: 20px; }
+.overlay .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* D-pad */
+.dpad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 40px); gap: 4px; justify-content: center; margin-top: 12px; }
+.dpad button { border: 1px solid var(--rule); background: var(--surface); border-radius: 4px; cursor: pointer; font-size: 16px; }
+.dpad .up { grid-column: 2; }
+.dpad .left { grid-column: 1; grid-row: 2; }
+.dpad .down { grid-column: 2; grid-row: 2; }
+.dpad .right { grid-column: 3; grid-row: 2; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+td { font-family: var(--font-mono); }
+.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+
+/* Legend */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.legend i.line { height: 3px; vertical-align: 3px; }
+
+/* Pseudocode */
+pre.code { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; margin: 0; overflow-x: auto; background: var(--paper); border-radius: 4px; padding: 10px 12px; }
+pre.code span { display: block; padding: 0 6px; border-radius: 3px; }
+pre.code span.hot { background: var(--stack); }
+pre.code span.hot-back { background: var(--dead); }
+
+/* Solver trio */
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 860px) { .trio { grid-template-columns: minmax(0, 1fr); } }
+.trio .sheet h3 { font-size: 16px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.stats div { font-size: 12px; color: var(--muted); }
+.stats b { display: block; font-family: var(--font-mono); font-size: 17px; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Charts */
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+svg.chart .grid { stroke: var(--rule); stroke-width: 1; }
+svg.chart .axis { stroke: var(--muted); stroke-width: 1; }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border-radius: 4px; z-index: 10; white-space: nowrap; }
+
+.prose { max-width: 70ch; }
+.prose p, .prose li { color: var(--ink); }
+.prose h2 { font-size: 22px; margin: 22px 0 8px; }
+.note { font-size: 13px; color: var(--muted); }
+.summary-band { font-family: var(--font-display); font-size: 26px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Maze<span>Mind</span> Assessment Lab</h1>
+      <p>Adaptive maze generation using backtracking for cognitive skill assessment. Every test maze is created fresh by a recursive backtracker, so it can't be memorised, and its difficulty adapts to how the person performs.</p>
+    </div>
+    <div class="form-id">CS3101 · Design and Analysis of Algorithms<br><b>Units I, II, IV</b> · backtracking, graph search, complexity</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-assess" aria-controls="view-assess" aria-selected="true" data-tab="assess">1 · Assessment</button>
+    <button class="tab" role="tab" id="tab-generate" aria-controls="view-generate" aria-selected="false" data-tab="generate">2 · How mazes are built</button>
+    <button class="tab" role="tab" id="tab-solve" aria-controls="view-solve" aria-selected="false" data-tab="solve">3 · Solver comparison</button>
+    <button class="tab" role="tab" id="tab-analyse" aria-controls="view-analyse" aria-selected="false" data-tab="analyse">4 · Complexity analysis</button>
+    <button class="tab" role="tab" id="tab-about" aria-controls="view-about" aria-selected="false" data-tab="about">About</button>
+  </nav>
+
+  <!-- 1. Assessment -->
+  <section id="view-assess" class="view" role="tabpanel" aria-labelledby="tab-assess">
+    <div class="bench">
+      <div class="sheet">
+        <div class="sheet-head">
+          <span class="label" id="as-title">Practice maze · level 3</span>
+          <span class="pill num" id="as-timer">0.0 s</span>
+        </div>
+        <div class="canvas-box">
+          <canvas id="as-canvas" role="img" aria-label="Assessment maze"></canvas>
+          <div class="overlay" id="as-overlay">
+            <div class="card">
+              <h3 id="ov-title">Find the way out</h3>
+              <p id="ov-text" aria-live="polite">Start at the blue dot in the top-left corner and reach the green exit in the bottom-right. Use the arrow keys, WASD or the buttons. Six mazes, and each one adapts to your last result.</p>
+              <div class="row" style="justify-content:center">
+                <button class="btn primary" id="ov-btn">Start assessment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dpad" role="group" aria-label="Move">
+          <button class="up" data-dir="N" aria-label="Up">↑</button>
+          <button class="left" data-dir="W" aria-label="Left">←</button>
+          <button class="down" data-dir="S" aria-label="Down">↓</button>
+          <button class="right" data-dir="E" aria-label="Right">→</button>
+        </div>
+      </div>
+
+      <div class="record">
+        <div class="panel">
+          <h3>Session</h3>
+          <div class="readouts">
+            <div class="readout"><div class="v" id="as-trial">0 / 6</div><div class="k">Trial</div></div>
+            <div class="readout"><div class="v" id="as-level">3</div><div class="k">Level (maze size)</div></div>
+            <div class="readout"><div class="v" id="as-diff">–</div><div class="k">Difficulty L + 3J</div></div>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn" id="as-start">Restart session</button>
+            <button class="btn" id="as-sim">Run simulated participant</button>
+            <label class="field" for="as-skill">Simulated skill <input type="range" id="as-skill" min="0.4" max="0.98" step="0.02" value="0.85"></label>
+          </div>
+          <p class="note" style="margin:10px 0 0">The simulation plays all six trials automatically, which is useful for a quick demo of how the level adapts.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Examiner's record</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Trial</th><th>Level</th><th>Moves / best</th><th>Eff.</th><th>Wrong turns</th><th>Plan</th><th>Score</th></tr></thead>
+              <tbody id="as-rows"><tr><td colspan="7" class="empty">Results appear here after each maze.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" id="as-summary" hidden>
+          <h3>Session summary</h3>
+          <div class="summary-band" id="sum-band"></div>
+          <div class="readouts" style="margin-top:12px">
+            <div class="readout"><div class="v" id="sum-final">–</div><div class="k">Final level</div></div>
+            <div class="readout"><div class="v" id="sum-eff">–</div><div class="k">Mean efficiency</div></div>
+            <div class="readout"><div class="v" id="sum-err">–</div><div class="k">Wrong turns</div></div>
+            <div class="readout"><div class="v" id="sum-plan">–</div><div class="k">Mean plan time</div></div>
+          </div>
+          <div id="sum-chart" style="margin-top:14px"></div>
+          <p class="note">Educational prototype modelled on maze-based planning tests. It is not a validated clinical instrument.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Generation -->
+  <section id="view-generate" class="view" role="tabpanel" aria-labelledby="tab-generate" hidden>
+    <div class="bench">
+      <div class="sheet">
+        <div class="sheet-head">
+          <span class="label" id="gen-title">Recursive backtracker · 15 × 15</span>
+          <span class="pill num" id="gen-step">step 0</span>
+        </div>
+        <div class="canvas-box"><canvas id="gen-canvas" role="img" aria-label="Maze being generated"></canvas></div>
+        <div class="legend">
+          <span><i style="background:var(--rock)"></i>Not visited yet</span>
+          <span><i style="background:var(--stack)"></i>On the stack (current path)</span>
+          <span><i style="background:var(--accent)"></i>Current cell</span>
+          <span><i style="background:var(--surface);border:1px solid var(--rule)"></i>Finished</span>
+        </div>
+      </div>
+      <div class="record">
+        <div class="panel">
+          <h3>Controls</h3>
+          <div class="row">
+            <label class="field" for="gen-algo">Algorithm
+              <select id="gen-algo">
+                <option value="backtracker">Recursive backtracker</option>
+                <option value="prim">Randomised Prim's</option>
+                <option value="kruskal">Randomised Kruskal's</option>
+              </select>
+            </label>
+            <label class="field" for="gen-size">Size
+              <select id="gen-size">
+                <option>8</option><option>12</option><option selected>15</option><option>20</option><option>30</option><option>40</option>
+              </select>
+            </label>
+            <label class="field" for="gen-seed">Seed <input type="number" id="gen-seed" value="2026" style="width:90px"></label>
+            <label class="field" for="gen-speed">Speed <input type="range" id="gen-speed" min="0" max="10" value="4"></label>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" id="gen-run">Animate</button>
+            <button class="btn" id="gen-pause">Pause</button>
+            <button class="btn" id="gen-stepbtn">Step</button>
+            <button class="btn" id="gen-instant">Instant</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="readouts">
+            <div class="readout"><div class="v" id="gen-visited">0</div><div class="k">Cells visited</div></div>
+            <div class="readout"><div class="v" id="gen-depth">0</div><div class="k">Stack depth</div></div>
+            <div class="readout"><div class="v" id="gen-back">0</div><div class="k">Backtracks</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 id="gen-code-title">Pseudocode</h3>
+          <pre class="code" id="gen-code"></pre>
+        </div>
+        <div class="panel" id="gen-result" hidden>
+          <h3>Finished maze</h3>
+          <div class="readouts" id="gen-metrics"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Solvers -->
+  <section id="view-solve" class="view" role="tabpanel" aria-labelledby="tab-solve" hidden>
+    <div class="panel" style="margin-bottom:18px">
+      <div class="row">
+        <label class="field" for="sv-size">Size
+          <select id="sv-size"><option>15</option><option selected>25</option><option>35</option></select>
+        </label>
+        <label class="field" for="sv-braid">Loops added <input type="range" id="sv-braid" min="0" max="60" step="10" value="30"> <span class="num" id="sv-braid-v">30% of dead ends opened</span></label>
+        <button class="btn" id="sv-new">New maze</button>
+        <button class="btn primary" id="sv-run">Run all three</button>
+      </div>
+      <p class="note" style="margin:10px 0 0">A perfect maze has exactly one route, so every solver finds the same path. Opening some dead ends creates loops. Then backtracking still finds <em>a</em> path, but only BFS and A* are guaranteed to find the <em>shortest</em> one.</p>
+    </div>
+    <div class="trio" id="sv-trio"></div>
+    <div class="legend">
+      <span><i style="background:var(--visit)"></i>Explored</span>
+      <span><i style="background:var(--dead)"></i>Abandoned (backtracked)</span>
+      <span><i class="line" style="background:var(--path)"></i>Path found</span>
+    </div>
+  </section>
+
+  <!-- 4. Analysis -->
+  <section id="view-analyse" class="view" role="tabpanel" aria-labelledby="tab-analyse" hidden>
+    <div class="panel" style="margin-bottom:18px">
+      <div class="row" style="justify-content:space-between">
+        <p class="note" style="margin:0;max-width:70ch">Measured live in this browser. Each point is the mean of repeated runs (at least 30 ms of work) on n × n grids. Generation should grow linearly with the number of cells, O(V + E) = O(rows × cols).</p>
+        <button class="btn primary" id="an-run">Run benchmark again</button>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="panel"><h3>Generation time vs cells</h3><div id="an-chart-time"></div><div class="legend" id="an-legend-time"></div></div>
+      <div class="panel"><h3>Cells explored by each solver</h3><div id="an-chart-explore"></div><div class="legend" id="an-legend-explore"></div></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h3>Maze character by algorithm</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Algorithm</th><th>Dead ends</th><th>Junctions</th><th>Solution / cells</th><th>Mean difficulty (40×40)</th><th>Perfect-maze check</th></tr></thead>
+        <tbody id="an-char"></tbody>
+      </table></div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h3>Recursion vs explicit stack</h3>
+      <p id="an-recursion" class="note">Running…</p>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h3>Raw timings</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Grid</th><th>Cells</th><th>Backtracker ms</th><th>Prim's ms</th><th>Kruskal's ms</th><th>DFS explored</th><th>BFS explored</th><th>A* explored</th><th>DFS path / shortest</th></tr></thead>
+        <tbody id="an-raw"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="view-about" class="view" role="tabpanel" aria-labelledby="tab-about" hidden>
+    <div class="prose">
+      <h2>The real-world problem</h2>
+      <p>Maze tests such as the Porteus Maze Test are used by psychologists to measure planning and foresight in children, in people with ADHD and in older adults showing signs of dementia. Printed tests have a fixed set of mazes, so people who take the test again can remember them, and the difficulty steps are coarse.</p>
+      <p>MazeMind generates a new maze for every trial with a recursive backtracker, measures its difficulty, and changes the next maze's size based on how the person did. That gives unlimited, comparable test items.</p>
+      <h2>How it works</h2>
+      <ol>
+        <li><b>Generate.</b> A randomised depth-first search carves passages from the top-left cell. When it reaches a dead end it backtracks to the last cell that still has unvisited neighbours. The result is a perfect maze: a spanning tree of the grid with exactly one route between any two cells.</li>
+        <li><b>Measure.</b> BFS finds the shortest route L. Every cell on it that offers two or more new exits is a decision point J. Difficulty = L + 3J.</li>
+        <li><b>Calibrate.</b> For each trial, 9 candidate mazes are generated and the one with median difficulty is used, so trials at the same level are equally hard.</li>
+        <li><b>Score.</b> Path efficiency (shortest moves ÷ moves taken), wrong turns (steps off the correct route), planning time (time before the first move) and wall bumps.</li>
+        <li><b>Adapt.</b> A staircase rule moves up a level after a clean solve (no wrong turns, efficiency ≥ 85%) and down after a poor one (3+ wrong turns or efficiency below 50%).</li>
+      </ol>
+      <h2>Complexity</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Step</th><th>Time</th><th>Space</th></tr></thead>
+        <tbody>
+          <tr><td>Backtracker generation</td><td>O(R·C)</td><td>O(R·C) worst-case stack</td></tr>
+          <tr><td>Prim's / Kruskal's generation</td><td>O(R·C) / O(R·C·α(R·C))</td><td>O(R·C)</td></tr>
+          <tr><td>DFS, BFS solve</td><td>O(R·C)</td><td>O(R·C)</td></tr>
+          <tr><td>A* solve</td><td>O(R·C log(R·C))</td><td>O(R·C)</td></tr>
+          <tr><td>Building one trial (k candidates)</td><td>O(k·R·C)</td><td>O(R·C)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">MazeMind is an educational prototype built for a course project. Its scores are not clinically validated.</p>
+    </div>
+  </section>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
